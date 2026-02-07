@@ -82,14 +82,7 @@ git push origin v0.2.0
   - `RustTools_<version>_aarch64.dmg` (Apple Silicon)
   - `RustTools.app.tar.gz`
 
-- **Windows**:
-  - `RustTools_<version>_x64_en-US.msi`
-  - `RustTools_<version>_x64-setup.exe` (NSIS installer)
-
-- **Linux**:
-  - `rust-tools_<version>_amd64.deb`
-  - `rust-tools-<version>-1.x86_64.rpm`
-  - `rust-tools_<version>_amd64.AppImage`
+> 注：当前仅配置 macOS 平台自动构建。如需 Windows/Linux 支持，可在 `.github/workflows/release.yml` 中添加相应平台。
 
 ## 🔧 手动触发构建
 

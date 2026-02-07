@@ -98,12 +98,8 @@ npm run tauri:build
 - **macOS**: 
   - `.app`: `src-tauri/target/release/bundle/macos/`
   - `.dmg`: `src-tauri/target/release/bundle/dmg/`
-- **Windows**:
-  - `.msi`: `src-tauri/target/release/bundle/msi/`
-  - `.exe`: `src-tauri/target/release/bundle/nsis/`
-- **Linux**:
-  - `.deb`: `src-tauri/target/release/bundle/deb/`
-  - `.AppImage`: `src-tauri/target/release/bundle/appimage/`
+
+> 注：当前主要支持 macOS 平台。Windows/Linux 理论上可在本地打包，但 GitHub Actions 仅配置了 macOS 自动构建。
 
 ## 📝 可用脚本
 
