@@ -10,7 +10,9 @@
 - 实时预览转换结果
 - 下载/另存为 `.md` 文件
 - 支持多级标题（1-6 级）、备注（引用块）
-- 仅支持含 `content.json` 的 XMind 新版格式（XMind 8 / XMind Zen）
+- **同时支持新旧版本 XMind**：
+  - ✅ XMind Zen / XMind 2020+（content.json）
+  - ✅ XMind 8 及更早版本（content.xml）
 
 ## 🛠 技术栈
 
@@ -121,9 +123,9 @@ npm run clean:build          # 清理构建输出
 - 确保先执行 `npm run build` 再打包
 - 使用 `./scripts/build.sh` 自动化打包流程
 
-### 转换失败：未找到 content.json
-- 该 XMind 文件为旧版格式（content.xml）
-- 请在 XMind 中「另存为」或「导出」为新版 .xmind 格式
+### 转换失败：未找到 content.json 或 content.xml
+- 文件可能损坏或不是标准的 XMind 格式
+- 尝试在 XMind 中重新打开并保存文件
 
 ## 📄 许可证
 

@@ -18,6 +18,7 @@ tauri-plugin-shell = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 zip = "2"
+quick-xml = { version = "0.36", features = ["serialize"] }
 
 [features]
 default = ["custom-protocol"]

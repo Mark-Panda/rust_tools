@@ -1,12 +1,13 @@
 //! XMind (.xmind) parsing and conversion to Markdown.
-//! .xmind is a ZIP containing content.json (and optionally content.xml for older versions).
-//! We only support content.json (newer XMind format).
+//! .xmind is a ZIP containing content.json (new format) or content.xml (legacy format).
+//! We support both formats.
 
 use serde::Deserialize;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 use zip::ZipArchive;
+use quick_xml::de::from_str as xml_from_str;
 
 #[derive(Deserialize)]
 struct RootTopic {
@@ -66,6 +67,106 @@ fn parse_content_json(json_str: &str) -> Result<RootTopic, String> {
 
     let root: RootTopic = serde_json::from_value(root).map_err(|e| format!("rootTopic 结构错误: {}", e))?;
     Ok(root)
+}
+
+// ========== XML 格式支持（XMind 8 旧版） ==========
+
+#[derive(Deserialize, Debug)]
+struct XmlXmap {
+    #[serde(rename = "sheet", default)]
+    sheets: Vec<XmlSheet>,
+}
+
+#[derive(Deserialize, Debug)]
+struct XmlSheet {
+    #[serde(rename = "topic")]
+    root_topic: XmlTopic,
+}
+
+#[derive(Deserialize, Debug, Default)]
+struct XmlTopic {
+    #[serde(rename = "title", default)]
+    title: Option<String>,
+    #[serde(rename = "notes", default)]
+    notes: Option<XmlNotes>,
+    #[serde(rename = "children", default)]
+    children: Option<XmlChildren>,
+}
+
+#[derive(Deserialize, Debug)]
+struct XmlNotes {
+    #[serde(rename = "plain", default)]
+    plain: Option<XmlPlain>,
+}
+
+#[derive(Deserialize, Debug)]
+struct XmlPlain {
+    #[serde(rename = "$value", default)]
+    content: Option<String>,
+}
+
+#[derive(Deserialize, Debug)]
+struct XmlChildren {
+    #[serde(rename = "topics", default)]
+    topics: Option<XmlTopics>,
+}
+
+#[derive(Deserialize, Debug)]
+struct XmlTopics {
+    #[serde(rename = "topic", default)]
+    topic_list: Vec<XmlTopic>,
+}
+
+/// 将 XML 格式转换为统一的 RootTopic 结构
+fn xml_topic_to_root(xml_topic: &XmlTopic) -> RootTopic {
+    RootTopic {
+        title: xml_topic.title.clone(),
+        notes: xml_topic.notes.as_ref().and_then(|n| {
+            n.plain.as_ref().and_then(|p| {
+                p.content.as_ref().map(|c| NotesContent {
+                    plain: Some(PlainContent {
+                        content: Some(c.clone()),
+                    }),
+                })
+            })
+        }),
+        children: xml_topic.children.as_ref().and_then(|c| {
+            c.topics.as_ref().map(|t| ChildrenWrapper {
+                attached: t.topic_list.iter().map(xml_topic_to_topic).collect(),
+            })
+        }),
+    }
+}
+
+fn xml_topic_to_topic(xml_topic: &XmlTopic) -> Topic {
+    Topic {
+        title: xml_topic.title.clone(),
+        notes: xml_topic.notes.as_ref().and_then(|n| {
+            n.plain.as_ref().and_then(|p| {
+                p.content.as_ref().map(|c| NotesContent {
+                    plain: Some(PlainContent {
+                        content: Some(c.clone()),
+                    }),
+                })
+            })
+        }),
+        children: xml_topic.children.as_ref().and_then(|c| {
+            c.topics.as_ref().map(|t| ChildrenWrapper {
+                attached: t.topic_list.iter().map(xml_topic_to_topic).collect(),
+            })
+        }),
+    }
+}
+
+/// 解析 XMind 8 的 content.xml 格式
+fn parse_content_xml(xml_str: &str) -> Result<RootTopic, String> {
+    let xmap: XmlXmap = xml_from_str(xml_str)
+        .map_err(|e| format!("content.xml 解析失败: {}", e))?;
+    
+    let sheet = xmap.sheets.first()
+        .ok_or("content.xml 中没有 sheet")?;
+    
+    Ok(xml_topic_to_root(&sheet.root_topic))
 }
 
 fn extract_plain_notes(notes: &Option<NotesContent>) -> Option<String> {
@@ -184,7 +285,7 @@ fn find_content_json(names: &[String]) -> Option<&str> {
         .map(String::as_str)
 }
 
-/// Read .xmind (ZIP), find content.json, parse and convert to Markdown string (UTF-8).
+/// Read .xmind (ZIP), find content.json or content.xml, parse and convert to Markdown string (UTF-8).
 pub fn parse_and_convert(path: &str) -> Result<String, String> {
     let path = Path::new(path);
     if path.extension().map(|e| e != "xmind").unwrap_or(true) {
@@ -194,38 +295,56 @@ pub fn parse_and_convert(path: &str) -> Result<String, String> {
     let mut archive = ZipArchive::new(file).map_err(|e| format!("不是有效的 ZIP/xmind 文件: {}", e))?;
 
     let names: Vec<String> = archive.file_names().map(String::from).collect();
+    
+    // 优先尝试 content.json（新版格式）
     let json_name = find_content_json(&names);
-
-    if json_name.is_none() {
-        let has_xml = names
+    
+    let root = if let Some(name) = json_name {
+        // 找到 content.json，使用 JSON 解析
+        let content = {
+            let mut entry = archive
+                .by_name(name)
+                .map_err(|e| format!("读取 content.json 失败: {}", e))?;
+            let mut s = String::new();
+            entry
+                .read_to_string(&mut s)
+                .map_err(|e| format!("读取 content.json 失败: {}", e))?;
+            s
+        };
+        parse_content_json(&content)?
+    } else {
+        // 未找到 content.json，尝试 content.xml（旧版格式）
+        let xml_name = names
             .iter()
-            .any(|n| normalize_zip_name(n) == "content.xml" || normalize_zip_name(n).ends_with("/content.xml"));
-        if has_xml {
-            return Err(
-                "该文件为 XMind 8 旧版格式（content.xml），当前仅支持 XMind Zen/新版（content.json）。请在 XMind 中「另存为」或「导出」为新版 .xmind 后再试。".to_string(),
-            );
+            .find(|n| {
+                let norm = normalize_zip_name(n);
+                norm == "content.xml" || norm.ends_with("/content.xml")
+            })
+            .map(String::as_str);
+        
+        if let Some(name) = xml_name {
+            let content = {
+                let mut entry = archive
+                    .by_name(name)
+                    .map_err(|e| format!("读取 content.xml 失败: {}", e))?;
+                let mut s = String::new();
+                entry
+                    .read_to_string(&mut s)
+                    .map_err(|e| format!("读取 content.xml 失败: {}", e))?;
+                s
+            };
+            parse_content_xml(&content)?
+        } else {
+            // 既没有 JSON 也没有 XML
+            let list: String = names.iter().take(20).map(|s| s.as_str()).collect::<Vec<_>>().join(", ");
+            let more = if names.len() > 20 { " ..." } else { "" };
+            return Err(format!(
+                "未找到 content.json 或 content.xml。ZIP 内文件: {}{}",
+                list, more
+            ));
         }
-        let list: String = names.iter().take(20).map(|s| s.as_str()).collect::<Vec<_>>().join(", ");
-        let more = if names.len() > 20 { " ..." } else { "" };
-        return Err(format!(
-            "未找到 content.json，可能是不支持的 XMind 版本。ZIP 内文件: {}{}",
-            list, more
-        ));
-    }
-
-    let name = json_name.unwrap();
-    let content = {
-        let mut entry = archive
-            .by_name(name)
-            .map_err(|e| format!("读取 content.json 失败: {}", e))?;
-        let mut s = String::new();
-        entry
-            .read_to_string(&mut s)
-            .map_err(|e| format!("读取 content.json 失败: {}", e))?;
-        s
     };
 
-    let root = parse_content_json(&content)?;
     let mut md = String::new();
     write_markdown_from_root(&root, &mut md);
     Ok(md)
