@@ -44,12 +44,16 @@ Thumbs.db
 
 # 打包产物（如需提交打包产物，可移除此行）
 *.dmg
-*.app
-*.exe
+*.app.tar.gz
 *.msi
+*.exe
+!src-tauri/target/release/bundle/**/*.exe
 *.deb
 *.rpm
 *.AppImage
+
+# GitHub Actions 临时文件
+.github/**/*.log
 
 # 临时文件
 *.tmp

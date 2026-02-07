@@ -1,5 +1,9 @@
 # Rust Tools - 工具包
 
+[![CI](https://github.com/yourusername/rust-tools/workflows/CI/badge.svg)](https://github.com/yourusername/rust-tools/actions)
+[![Release](https://github.com/yourusername/rust-tools/workflows/Release/badge.svg)](https://github.com/yourusername/rust-tools/actions)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 基于 Tauri 2 的跨平台桌面工具集合，包含多种实用开发工具。
 
 ## ✨ 功能
@@ -134,3 +138,28 @@ MIT License
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
+
+### 发布新版本
+
+查看 [RELEASE.md](RELEASE.md) 了解如何发布新版本。
+
+简要步骤：
+```bash
+# 1. 更新版本号
+./scripts/version.sh 0.2.0
+
+# 2. 更新 CHANGELOG.md
+
+# 3. 提交并推送标签
+git add -A
+git commit -m "chore: bump version to v0.2.0"
+git tag v0.2.0
+git push origin main
+git push origin v0.2.0
+```
+
+GitHub Actions 会自动构建并发布到 Releases。
+
+## 📋 变更日志
+
+查看 [CHANGELOG.md](CHANGELOG.md) 了解所有版本的变更历史。
