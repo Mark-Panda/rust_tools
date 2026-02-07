@@ -1,0 +1,36 @@
+{
+  "productName": "RustTools",
+  "version": "0.1.0",
+  "identifier": "com.rusttools",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "security": { "csp": null },
+    "windows": [
+      {
+        "label": "main",
+        "title": "工具包",
+        "width": 920,
+        "height": 720,
+        "visible": true,
+        "resizable": true
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": ["icons/icon.png"],
+    "resources": [],
+    "externalBin": [],
+    "copyright": "",
+    "category": "DeveloperTool",
+    "shortDescription": "Rust 实用工具包",
+    "longDescription": "包含 XMind 转 Markdown 等实用开发工具的桌面应用。"
+  }
+}

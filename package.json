@@ -1,0 +1,26 @@
+{
+  "name": "rust-tools",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "npm run build && tauri dev --no-watch",
+    "tauri:build": "npm run build && tauri build",
+    "tauri:build:debug": "npm run build && tauri build --debug",
+    "clean": "rm -rf dist node_modules src-tauri/target",
+    "clean:build": "rm -rf dist src-tauri/target/release"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2",
+    "@tauri-apps/plugin-shell": "^2"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "vite": "^5",
+    "marked": "^15.0.0"
+  }
+}
