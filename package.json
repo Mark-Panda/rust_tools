@@ -8,8 +8,8 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "npm run build && tauri dev --no-watch",
-    "tauri:build": "npm run build && tauri build",
-    "tauri:build:debug": "npm run build && tauri build --debug",
+    "tauri:build": "tauri build",
+    "tauri:build:debug": "tauri build --debug",
     "clean": "rm -rf dist node_modules src-tauri/target",
     "clean:build": "rm -rf dist src-tauri/target/release"
   },
